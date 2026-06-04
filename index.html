@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S — Dual Core (Gemini + Claude)</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* ── THEME VARIABLES (Iron Man as default) ── */
+  --theme-primary: #f0c040;      /* Gold */
+  --theme-primary-light: #c9a84c;
+  --theme-primary-dark: #3a2a08;
+  --theme-secondary: #4db8ff;    /* Arc */
+  --theme-secondary-light: #80d4ff;
+  --theme-secondary-dark: #0a1a2a;
+  --theme-accent: #3dff8f;       /* Green */
+  --theme-danger: #ff3d3d;       /* Red */
+  --theme-alt: #9d4edd;          /* Claude Purple */
+  --theme-alt-light: #c77dff;
+  
+  /* Base colors */
+  --bg: #04060a;
+  --panel: #080c14;
+  --panel-alt: #0c1220;
+  --panel-dark: #050810;
+  --panel-light: #0f151f;
+  --text-primary: #b0c8e0;
+  --text-secondary: #7a9ac0;
+  --text-tertiary: #4a6a90;
+  --border: #1a2a3a;
+  --border-light: #2a3a4a;
+  
+  /* Theme colors (dynamically updated) */
+  --mode-color: var(--theme-secondary);
+  --mode-color-light: var(--theme-secondary-light);
+  --mode-color-dark: var(--theme-secondary-dark);
+  
+  /* Effects & Shadows */
+  --glow-intense: 0 0 40px var(--mode-color);
+  --glow-soft: 0 0 20px rgba(77, 184, 255, 0.3);
+  --scan-opacity: 0.06;
+}
+
+/* ── DOOMSDAY THEME ── */
+body.theme-doomsday {
+  --theme-primary: #e63946;      /* Red */
+  --theme-primary-light: #ff6b6b;
+  --theme-primary-dark: #8b0000;
+  --theme-secondary: #a4161a;    /* Dark Red */
+  --theme-secondary-light: #d62828;
+  --theme-secondary-dark: #370617;
+  --theme-accent: #ff006e;       /* Pink */
+  --theme-danger: #ff1744;       /* Bright Red */
+  --bg: #0a0406;
+  --panel: #1a0a0c;
+  --panel-alt: #2d0f14;
+  --panel-dark: #050203;
+  --panel-light: #1f0a0e;
+  --text-primary: #e0b0b0;
+  --text-secondary: #c07a7a;
+  --text-tertiary: #905555;
+  --border: #3a1a20;
+  --border-light: #4a2a30;
+  --scan-opacity: 0.09;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: 'Share Tech Mono', monospace;
+  overflow: hidden;
+}
+
+/* ── SCANLINE EFFECT (Enhanced) ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, var(--scan-opacity)) 2px,
+    rgba(0, 0, 0, var(--scan-opacity)) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── VIGNETTE EFFECT ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.15) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ── AUTH SCREEN ── */
+#authScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+  transition: background 0.8s;
+  background: var(--bg);
+}
+
+#authScreen.invalid {
+  background: #1a0000;
+  animation: redPulse 0.6s ease;
+}
+
+@keyframes redPulse {
+  0% { background: var(--bg); }
+  30% { background: #3a0000; }
+  100% { background: #1a0000; }
+}
+
+.auth-reactor {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin-bottom: 12px;
+}
+
+.auth-reactor svg {
+  width: 140px;
+  height: 140px;
+  filter: drop-shadow(0 0 30px var(--mode-color));
+  animation: reactorBreathe 3s ease-in-out infinite;
+}
+
+@keyframes reactorBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.auth-title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 1.8rem;
+  letter-spacing: 8px;
+  color: var(--theme-primary);
+  text-shadow: 0 0 30px rgba(240, 192, 64, 0.5), 0 0 60px rgba(240, 192, 64, 0.25);
+}
+
+.auth-sub {
+  font-size: 0.6rem;
+  letter-spacing: 4px;
+  color: var(--theme-primary-dark);
+  margin-top: -12px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.auth-tab {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 3px;
+  padding: 12px 24px;
+  background: transparent;
+  border: 2px solid var(--theme-primary-light);
+  color: var(--theme-primary-light);
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+
+.auth-tab:hover {
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+  box-shadow: inset 0 0 20px rgba(240, 192, 64, 0.1);
+}
+
+.auth-tab.active {
+  background: rgba(240, 192, 64, 0.15);
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+  box-shadow: 0 0 20px rgba(240, 192, 64, 0.3);
+}
+
+.auth-tab.claude-tab.active {
+  background: rgba(157, 78, 221, 0.15);
+  border-color: var(--theme-alt-light);
+  color: var(--theme-alt-light);
+}
+
+.auth-steps {
+  font-size: 0.58rem;
+  line-height: 2.2;
+  color: var(--mode-color-light);
+  letter-spacing: 1px;
+  text-align: center;
+  margin-bottom: 12px;
+  background: rgba(10, 10, 20, 0.5);
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+
+.auth-steps span {
+  color: var(--theme-primary);
+  font-weight: 600;
+}
+
+.auth-steps.claude-steps span {
+  color: var(--theme-alt-light);
+}
+
+.auth-box {
+  position: relative;
+  width: 380px;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--panel-dark);
+  border: 1px solid var(--theme-primary-light);
+  color: var(--theme-primary);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  outline: none;
+  letter-spacing: 2px;
+  transition: all 0.3s;
+}
+
+.auth-input:focus {
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 20px rgba(240, 192, 64, 0.25), inset 0 0 10px rgba(240, 192, 64, 0.05);
+}
+
+.auth-input.error {
+  border-color: var(--theme-danger);
+  box-shadow: 0 0 20px rgba(255, 61, 61, 0.3);
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+.auth-btn {
+  width: 100%;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 4px;
+  padding: 14px;
+  background: transparent;
+  border: 2px solid var(--mode-color-light);
+  color: var(--mode-color-light);
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+.auth-btn:hover {
+  background: rgba(77, 184, 255, 0.1);
+  box-shadow: 0 0 24px rgba(77, 184, 255, 0.3);
+}
+
+.auth-btn.claude-btn {
+  border-color: var(--theme-alt-light);
+  color: var(--theme-alt-light);
+}
+
+.auth-btn.claude-btn:hover {
+  background: rgba(157, 78, 221, 0.1);
+  box-shadow: 0 0 24px rgba(157, 78, 221, 0.3);
+}
+
+.auth-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-error {
+  font-size: 0.58rem;
+  color: var(--theme-danger);
+  letter-spacing: 2px;
+  min-height: 20px;
+  text-align: center;
+  transition: opacity 0.3s;
+}
+
+.auth-note {
+  font-size: 0.5rem;
+  color: var(--theme-primary-dark);
+  letter-spacing: 1px;
+  text-align: center;
+  margin-top: 12px;
+}
+
+.auth-tab-content {
+  display: none;
+}
+
+.auth-tab-content.active {
+  display: block;
+}
+
+/* ── INVALID STATE OVERLAY ── */
+.invalid-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  background: rgba(40, 0, 0, 0.97);
+}
+
+.invalid-overlay.show {
+  display: flex;
+}
+
+.inv-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: var(--theme-danger);
+  text-shadow: 0 0 40px rgba(255, 61, 61, 0.8), 0 0 80px rgba(255, 61, 61, 0.4);
+  animation: flicker 1.5s infinite;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  45% { opacity: 0.7; }
+  50% { opacity: 1; }
+  55% { opacity: 0.8; }
+}
+
+.inv-sub {
+  font-size: 0.65rem;
+  letter-spacing: 4px;
+  color: #ff8888;
+}
+
+.inv-input {
+  width: 380px;
+  padding: 14px 18px;
+  background: #0a0000;
+  border: 1px solid var(--theme-danger);
+  color: #ff8888;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  outline: none;
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+.inv-input:focus {
+  border-color: #ff6666;
+  box-shadow: 0 0 20px rgba(255, 61, 61, 0.3);
+}
+
+.inv-btn {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 4px;
+  padding: 13px 40px;
+  background: transparent;
+  border: 2px solid var(--theme-danger);
+  color: #ff8888;
+  cursor: pointer;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  transition: all 0.3s;
+}
+
+.inv-btn:hover {
+  background: rgba(255, 61, 61, 0.1);
+}
+
+.inv-scan {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--theme-danger), transparent);
+  animation: scanline 3s linear infinite;
+}
+
+@keyframes scanline {
+  from { top: 0; }
+  to { top: 100%; }
+}
+
+/* ── MAIN LAYOUT ── */
+#mainApp {
+  display: none;
+  height: 100vh;
+  flex-direction: column;
+}
+
+#mainApp.visible {
+  display: flex;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 2px solid var(--border-light);
+  background: linear-gradient(180deg, rgba(15, 21, 31, 0.95) 0%, rgba(8, 12, 20, 0.9) 100%);
+  flex-shrink: 0;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.topbar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--mode-color), transparent);
+  opacity: 0.3;
+}
+
+.top-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.hamburger {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--theme-primary-light);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.3s;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+.hamburger:hover {
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 12px rgba(240, 192, 64, 0.2);
+}
+
+.ham-line {
+  width: 18px;
+  height: 2px;
+  background: var(--theme-primary-light);
+  transition: all 0.3s;
+}
+
+.top-title {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 0.8rem;
+  letter-spacing: 6px;
+  color: var(--theme-primary);
+  text-shadow: 0 0 15px rgba(240, 192, 64, 0.5), 0 0 30px rgba(240, 192, 64, 0.2);
+}
+
+/* ── MODEL TOGGLE ── */
+.model-toggle {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.58rem;
+  letter-spacing: 2px;
+}
+
+.toggle-btn {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.52rem;
+  letter-spacing: 2px;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+.toggle-btn:hover {
+  border-color: var(--theme-primary-light);
+  color: var(--theme-primary-light);
+}
+
+.toggle-btn.active {
+  background: rgba(77, 184, 255, 0.2);
+  border-color: var(--theme-secondary);
+  color: var(--mode-color-light);
+  box-shadow: 0 0 12px rgba(77, 184, 255, 0.3);
+}
+
+.toggle-btn.active.claude {
+  background: rgba(157, 78, 221, 0.2);
+  border-color: var(--theme-alt);
+  color: var(--theme-alt-light);
+}
+
+/* ── CENTER REACTOR ── */
+.center-reactor {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.center-reactor:hover {
+  transform: translateX(-50%) scale(1.1);
+}
+
+.center-reactor svg {
+  width: 50px;
+  height: 50px;
+  transition: filter 0.4s;
+}
+
+.center-reactor svg.idle {
+  filter: drop-shadow(0 0 12px var(--mode-color));
+}
+
+.center-reactor svg.listening {
+  filter: drop-shadow(0 0 24px var(--mode-color)) drop-shadow(0 0 48px var(--mode-color));
+}
+
+.center-reactor svg.speaking {
+  filter: drop-shadow(0 0 24px var(--theme-primary)) drop-shadow(0 0 48px var(--theme-primary));
+}
+
+.center-reactor svg.thinking {
+  filter: drop-shadow(0 0 24px var(--theme-accent)) drop-shadow(0 0 36px var(--theme-accent));
+}
+
+.reactor-ring {
+  animation: ringSpin 8s linear infinite;
+  transform-origin: 25px 25px;
+}
+
+.reactor-ring2 {
+  animation: ringSpin2 5s linear infinite;
+  transform-origin: 25px 25px;
+}
+
+@keyframes ringSpin { to { transform: rotate(360deg); } }
+@keyframes ringSpin2 { to { transform: rotate(-360deg); } }
+
+.reactor-core {
+  animation: corePulse 2s ease-in-out infinite;
+}
+
+@keyframes corePulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.top-badge {
+  font-size: 0.52rem;
+  letter-spacing: 2px;
+  padding: 6px 14px;
+  border: 1px solid var(--theme-primary-light);
+  color: var(--theme-primary);
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  background: rgba(240, 192, 64, 0.08);
+  text-transform: uppercase;
+}
+
+.top-badge.claude {
+  border-color: var(--theme-alt);
+  color: var(--theme-alt-light);
+  background: rgba(157, 78, 221, 0.08);
+}
+
+.top-time {
+  font-size: 0.65rem;
+  color: var(--mode-color-light);
+  letter-spacing: 2px;
+}
+
+.mic-status {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--theme-accent);
+  box-shadow: 0 0 10px var(--theme-accent);
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  bottom: 0;
+  width: 300px;
+  background: linear-gradient(180deg, rgba(15, 21, 31, 0.99) 0%, rgba(8, 12, 20, 0.98) 100%);
+  border-right: 2px solid var(--border-light);
+  transform: translateX(-100%);
+  transition: transform 0.3s;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 20px;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sb-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  color: var(--theme-primary-light);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+  text-transform: uppercase;
+}
+
+.sb-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.6rem;
+}
+
+.sb-label {
+  color: var(--theme-primary-light);
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.sb-val {
+  color: var(--mode-color-light);
+  font-size: 0.58rem;
+  letter-spacing: 1px;
+}
+
+.sb-val.green {
+  color: var(--theme-accent);
+}
+
+.sb-val.claude {
+  color: var(--theme-alt-light);
+}
+
+.sb-btn {
+  width: 100%;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 3px;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--theme-primary-light);
+  cursor: pointer;
+  margin-top: 16px;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+
+.sb-btn:hover {
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+  background: rgba(240, 192, 64, 0.1);
+  box-shadow: inset 0 0 16px rgba(240, 192, 64, 0.1);
+}
+
+.sb-btn.danger {
+  border-color: rgba(255, 61, 61, 0.5);
+  color: #ff8888;
+}
+
+.sb-btn.danger:hover {
+  border-color: var(--theme-danger);
+  background: rgba(255, 61, 61, 0.1);
+}
+
+.theme-toggle {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 2px solid var(--border);
+}
+
+.theme-label {
+  font-size: 0.58rem;
+  letter-spacing: 2px;
+  color: var(--theme-primary-light);
+  margin-bottom: 10px;
+  display: block;
+  text-transform: uppercase;
+}
+
+.theme-btns {
+  display: flex;
+  gap: 10px;
+}
+
+.theme-btn {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.55rem;
+  letter-spacing: 1px;
+  transition: all 0.3s;
+  clip-path: polygon(3px 0, 100% 0, calc(100% - 3px) 100%, 0 100%);
+}
+
+.theme-btn:hover {
+  border-color: var(--theme-primary-light);
+  color: var(--theme-primary-light);
+}
+
+.theme-btn.active {
+  background: rgba(240, 192, 64, 0.15);
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+  box-shadow: 0 0 12px rgba(240, 192, 64, 0.3);
+}
+
+/* ── BODY ── */
+.app-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── BIG REACTOR ── */
+.reactor-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: radial-gradient(circle at center, rgba(77, 184, 255, 0.03) 0%, transparent 70%);
+}
+
+.big-reactor svg {
+  transition: filter 0.4s;
+}
+
+.big-reactor svg.idle {
+  filter: drop-shadow(0 0 20px rgba(77, 184, 255, 0.3));
+}
+
+.big-reactor svg.listening {
+  filter: drop-shadow(0 0 50px rgba(77, 184, 255, 0.8)) drop-shadow(0 0 100px rgba(77, 184, 255, 0.4));
+}
+
+.big-reactor svg.speaking {
+  filter: drop-shadow(0 0 50px rgba(240, 192, 64, 0.8)) drop-shadow(0 0 100px rgba(240, 192, 64, 0.4));
+}
+
+.big-reactor svg.thinking {
+  filter: drop-shadow(0 0 40px rgba(61, 255, 143, 0.6)) drop-shadow(0 0 80px rgba(61, 255, 143, 0.3));
+}
+
+.big-reactor svg.claude-idle {
+  filter: drop-shadow(0 0 20px rgba(157, 78, 221, 0.3));
+}
+
+.big-reactor svg.claude-listening {
+  filter: drop-shadow(0 0 50px rgba(157, 78, 221, 0.8)) drop-shadow(0 0 100px rgba(157, 78, 221, 0.4));
+}
+
+.big-reactor svg.claude-speaking {
+  filter: drop-shadow(0 0 50px rgba(199, 125, 255, 0.8)) drop-shadow(0 0 100px rgba(199, 125, 255, 0.4));
+}
+
+.big-reactor svg.claude-thinking {
+  filter: drop-shadow(0 0 40px rgba(157, 78, 221, 0.6)) drop-shadow(0 0 80px rgba(157, 78, 221, 0.3));
+}
+
+.big-ring1 {
+  animation: ringSpin 12s linear infinite;
+  transform-origin: 130px 130px;
+}
+
+.big-ring2 {
+  animation: ringSpin2 8s linear infinite;
+  transform-origin: 130px 130px;
+}
+
+.big-ring3 {
+  animation: ringSpin 20s linear infinite;
+  transform-origin: 130px 130px;
+}
+
+.big-core {
+  animation: corePulse 2s ease-in-out infinite;
+}
+
+/* ── CHAT FEED ── */
+.chat-feed {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  right: 24px;
+  max-height: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--mode-color) transparent;
+  padding-right: 8px;
+}
+
+.chat-feed::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-feed::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-feed::-webkit-scrollbar-thumb {
+  background: var(--mode-color);
+  border-radius: 3px;
+}
+
+.chat-line {
+  font-size: 0.68rem;
+  line-height: 1.6;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: lineIn 0.4s forwards;
+  max-width: 90%;
+  padding: 6px 10px;
+  border-radius: 1px;
+  background: rgba(10, 10, 20, 0.4);
+  border-left: 2px solid;
+}
+
+@keyframes lineIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-line.user {
+  color: var(--theme-primary);
+  align-self: flex-end;
+  text-align: right;
+  border-left-color: var(--theme-primary);
+}
+
+.chat-line.user::before {
+  content: 'YOU  ';
+  color: var(--theme-primary-light);
+  font-size: 0.5rem;
+}
+
+.chat-line.jarvis {
+  color: var(--mode-color-light);
+  align-self: flex-start;
+  border-left-color: var(--mode-color);
+}
+
+.chat-line.jarvis::before {
+  content: 'JARVIS  ';
+  color: var(--mode-color);
+  font-size: 0.5rem;
+}
+
+.chat-line.claude {
+  color: var(--theme-alt-light);
+  align-self: flex-start;
+  border-left-color: var(--theme-alt);
+}
+
+.chat-line.claude::before {
+  content: 'CLAUDE  ';
+  color: var(--theme-alt);
+  font-size: 0.5rem;
+}
+
+.chat-line.sys {
+  color: var(--theme-primary-light);
+  align-self: center;
+  font-size: 0.55rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ── STATUS ── */
+.status-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.status-txt {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 4px;
+  color: #2a4a6a;
+  white-space: nowrap;
+  transition: all 0.3s;
+  text-transform: uppercase;
+}
+
+.status-txt.listening {
+  color: var(--mode-color);
+  text-shadow: 0 0 12px var(--mode-color);
+}
+
+.status-txt.listening.claude {
+  color: var(--theme-alt-light);
+  text-shadow: 0 0 12px var(--theme-alt-light);
+}
+
+.status-txt.speaking {
+  color: var(--theme-primary);
+  text-shadow: 0 0 12px var(--theme-primary);
+}
+
+.status-txt.thinking {
+  color: var(--theme-accent);
+  text-shadow: 0 0 12px var(--theme-accent);
+}
+
+.waveform {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  height: 32px;
+}
+
+.wbar {
+  width: 4px;
+  background: var(--mode-color);
+  border-radius: 2px;
+  height: 5px;
+  opacity: 0.4;
+}
+
+.wbar.on {
+  animation: wv var(--d, 0.5s) ease-in-out infinite alternate;
+  opacity: 1;
+}
+
+.wbar.claude {
+  background: var(--theme-alt-light);
+}
+
+@keyframes wv {
+  from { height: 5px; }
+  to { height: var(--h, 20px); }
+}
+
+/* ── BOTTOM BAR ── */
+.bottom-bar {
+  height: 72px;
+  border-top: 2px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  background: linear-gradient(180deg, rgba(8, 12, 20, 0.9) 0%, rgba(4, 6, 10, 0.95) 100%);
+  flex-shrink: 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.bottom-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--mode-color), transparent);
+  opacity: 0.3;
+}
+
+.mic-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid var(--mode-color);
+  color: var(--mode-color);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.mic-btn:hover {
+  box-shadow: 0 0 16px rgba(77, 184, 255, 0.4);
+}
+
+.mic-btn.on {
+  background: rgba(77, 184, 255, 0.2);
+  box-shadow: 0 0 32px rgba(77, 184, 255, 0.6);
+  animation: micPulse 1s infinite;
+}
+
+.mic-btn.claude {
+  border-color: var(--theme-alt-light);
+  color: var(--theme-alt-light);
+}
+
+.mic-btn.claude.on {
+  background: rgba(157, 78, 221, 0.2);
+  box-shadow: 0 0 32px rgba(157, 78, 221, 0.6);
+}
+
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(77, 184, 255, 0.4); }
+  50% { box-shadow: 0 0 40px rgba(77, 184, 255, 0.8); }
+}
+
+.txt-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--theme-primary);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  padding: 12px 8px;
+  outline: none;
+  letter-spacing: 1px;
+  transition: border-color 0.3s;
+}
+
+.txt-input:focus {
+  border-color: var(--theme-primary);
+  box-shadow: 0 2px 8px rgba(240, 192, 64, 0.1);
+}
+
+.txt-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.send-btn {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.55rem;
+  letter-spacing: 3px;
+  padding: 11px 20px;
+  background: transparent;
+  border: 2px solid var(--theme-primary-light);
+  color: var(--theme-primary);
+  cursor: pointer;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  transition: all 0.3s;
+  text-transform: uppercase;
+}
+
+.send-btn:hover {
+  background: rgba(240, 192, 64, 0.12);
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 16px rgba(240, 192, 64, 0.2);
+}
+
+.send-btn.claude {
+  border-color: var(--theme-alt-light);
+  color: var(--theme-alt-light);
+}
+
+.send-btn.claude:hover {
+  background: rgba(157, 78, 221, 0.12);
+}
+
+.quick-btns {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.qbtn {
+  font-size: 0.5rem;
+  letter-spacing: 1px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: transparent;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+  transition: all 0.3s;
+  text-transform: uppercase;
+}
+
+.qbtn:hover {
+  border-color: var(--theme-primary-light);
+  color: var(--theme-primary-light);
+  background: rgba(240, 192, 64, 0.08);
+}
+</style>
+</head>
+<body>
+
+<!-- INVALID KEY OVERLAY -->
+<div class="invalid-overlay" id="invalidOverlay">
+  <div class="inv-scan"></div>
+  <div style="font-family:'Orbitron',sans-serif;font-size:0.58rem;letter-spacing:4px;color:#ff4444;margin-bottom:-10px">ACCESS DENIED — SECURITY BREACH DETECTED</div>
+  <div class="inv-title">INVALID CREDENTIALS</div>
+  <div class="inv-sub">AUTHORIZATION FAILED — RE-ENTER API KEY TO CONTINUE</div>
+  <input class="inv-input" id="invInput" type="password" placeholder="Enter valid API key..."/>
+  <button class="inv-btn" onclick="retryKey()">RETRY AUTHORIZATION</button>
+  <div style="font-size:0.52rem;color:#661111;letter-spacing:1px">JARVIS SYSTEMS LOCKED PENDING VERIFICATION</div>
+</div>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen">
+  <div class="auth-reactor">
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="acg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" style="stop-color:#c0ecff"/>
+          <stop offset="60%" style="stop-color:#4db8ff"/>
+          <stop offset="100%" style="stop-color:#0d2a40;stop-opacity:0"/>
+        </radialGradient>
+        <filter id="agf"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <g style="animation:ringSpin 8s linear infinite;transform-origin:60px 60px">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(77,184,255,0.3)" stroke-width="1.5" stroke-dasharray="14,8"/>
+        <circle cx="60" cy="10" r="3" fill="rgba(77,184,255,0.8)"/>
+        <circle cx="60" cy="110" r="3" fill="rgba(77,184,255,0.8)"/>
+        <circle cx="10" cy="60" r="3" fill="rgba(77,184,255,0.8)"/>
+        <circle cx="110" cy="60" r="3" fill="rgba(77,184,255,0.8)"/>
+      </g>
+      <g style="animation:ringSpin2 5s linear infinite;transform-origin:60px 60px">
+        <circle cx="60" cy="60" r="38" fill="none" stroke="rgba(201,168,76,0.4)" stroke-width="1.5" stroke-dasharray="5,7"/>
+        <circle cx="60" cy="24" r="3" fill="rgba(201,168,76,0.9)"/>
+        <circle cx="60" cy="96" r="3" fill="rgba(201,168,76,0.9)"/>
+        <circle cx="24" cy="60" r="3" fill="rgba(201,168,76,0.9)"/>
+        <circle cx="96" cy="60" r="3" fill="rgba(201,168,76,0.9)"/>
+      </g>
+      <circle cx="60" cy="60" r="26" fill="rgba(4,10,20,0.9)" stroke="rgba(77,184,255,0.4)" stroke-width="1.5"/>
+      <g stroke="rgba(77,184,255,0.3)" stroke-width="1" fill="none">
+        <polygon points="60,38 76,48 76,68 60,78 44,68 44,48"/>
+        <line x1="60" y1="38" x2="60" y2="60"/><line x1="76" y1="48" x2="60" y2="60"/>
+        <line x1="76" y1="68" x2="60" y2="60"/><line x1="60" y1="78" x2="60" y2="60"/>
+        <line x1="44" y1="68" x2="60" y2="60"/><line x1="44" y1="48" x2="60" y2="60"/>
+      </g>
+      <g filter="url(#agf)" style="animation:corePulse 2s ease-in-out infinite">
+        <circle cx="60" cy="60" r="20" fill="url(#acg)" opacity="0.92"/>
+        <circle cx="60" cy="60" r="9"  fill="#a0e4ff" opacity="0.96"/>
+        <circle cx="60" cy="60" r="4"  fill="white"/>
+      </g>
+    </svg>
+  </div>
+  <div class="auth-title">J.A.R.V.I.S</div>
+  <div class="auth-sub">DUAL CORE — AUTHORIZATION REQUIRED</div>
+  
+  <div class="auth-tabs">
+    <button class="auth-tab active" onclick="switchAuthTab('gemini')">GEMINI</button>
+    <button class="auth-tab claude-tab" onclick="switchAuthTab('claude')">CLAUDE</button>
+  </div>
+
+  <!-- GEMINI TAB -->
+  <div id="gemini-tab" class="auth-tab-content active">
+    <div class="auth-steps">
+      1. Go to <span>aistudio.google.com</span><br>
+      2. Sign in with your Google account<br>
+      3. Click "Get API Key" → "Create API key"<br>
+      4. Copy and paste below — it's free
+    </div>
+    <div class="auth-box">
+      <input class="auth-input" id="geminiInput" type="password" placeholder="PASTE GEMINI API KEY"/>
+      <div class="auth-error" id="geminiError">&nbsp;</div>
+      <button class="auth-btn" id="geminiBtn" onclick="authorizeGemini()">INITIALIZE GEMINI CORE</button>
+    </div>
+  </div>
+
+  <!-- CLAUDE TAB -->
+  <div id="claude-tab" class="auth-tab-content">
+    <div class="auth-steps claude-steps">
+      1. Go to <span>console.anthropic.com</span><br>
+      2. Sign in or create account<br>
+      3. Go to API Keys → Create Key<br>
+      4. Copy and paste below (paid tier)
+    </div>
+    <div class="auth-box">
+      <input class="auth-input" id="claudeInput" type="password" placeholder="PASTE CLAUDE API KEY"/>
+      <div class="auth-error" id="claudeError">&nbsp;</div>
+      <button class="auth-btn claude-btn" id="claudeBtn" onclick="authorizeClaude()">INITIALIZE CLAUDE CORE</button>
+    </div>
+  </div>
+
+  <div class="auth-note">Keys saved locally — enter once per core, works forever</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sb-title">// SYSTEM CONTROL</div>
+    <div class="sb-row"><span class="sb-label">PRIMARY</span><span class="sb-val" id="sb-primary">GEMINI 3.5 FLASH</span></div>
+    <div class="sb-row"><span class="sb-label">SECONDARY</span><span class="sb-val" id="sb-secondary">OFFLINE</span></div>
+    <div class="sb-row"><span class="sb-label">VOICE</span><span class="sb-val green" id="sb-voice">ACTIVE</span></div>
+    <div class="sb-row"><span class="sb-label">SESSION</span><span class="sb-val" id="sb-session">00:00</span></div>
+    <div class="sb-row"><span class="sb-label">QUERIES</span><span class="sb-val" id="sb-queries">0</span></div>
+    <div style="margin-top:20px;font-family:'Orbitron',sans-serif;font-size:0.55rem;letter-spacing:2px;color:var(--theme-primary-light);margin-bottom:10px;text-transform:uppercase">// QUICK COMMANDS</div>
+    <div style="font-size:0.58rem;color:var(--mode-color);line-height:2.4;letter-spacing:0.5px;background:rgba(10,10,20,0.4);padding:10px;border:1px solid var(--border);border-radius:2px">
+      "Hey JARVIS, time"<br>
+      "Battle mode on" (Claude)<br>
+      "Battle mode off" (Gemini)<br>
+      "Endgame on" (Doomsday)<br>
+      "Endgame off" (Iron Man)
+    </div>
+    <div class="theme-toggle">
+      <label class="theme-label">// AESTHETIC</label>
+      <div class="theme-btns">
+        <button class="theme-btn active" onclick="switchTheme('iron-man')">IRON MAN</button>
+        <button class="theme-btn" onclick="switchTheme('doomsday')">ENDGAME</button>
+      </div>
+    </div>
+    <div style="margin-top:auto">
+      <button class="sb-btn" onclick="showApiConfig()">MANAGE API KEYS</button>
+      <button class="sb-btn" onclick="clearHistory()">CLEAR HISTORY</button>
+    </div>
+  </div>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="top-left">
+      <button class="hamburger" onclick="toggleSidebar()" id="hamBtn">
+        <div class="ham-line"></div><div class="ham-line"></div><div class="ham-line"></div>
+      </button>
+      <div class="top-title">J.A.R.V.I.S — DUAL CORE</div>
+    </div>
+
+    <!-- MODEL TOGGLE -->
+    <div class="model-toggle">
+      <button class="toggle-btn active" id="geminiToggle" onclick="switchModel('gemini')">GEMINI</button>
+      <button class="toggle-btn" id="claudeToggle" onclick="switchModel('claude')">CLAUDE</button>
+    </div>
+
+    <!-- CENTER REACTOR BUTTON -->
+    <div class="center-reactor" onclick="toggleSidebar()" title="Open settings">
+      <svg id="topReactor" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="tcg" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" style="stop-color:#c0ecff"/>
+            <stop offset="60%" style="stop-color:#4db8ff"/>
+            <stop offset="100%" style="stop-color:transparent"/>
+          </radialGradient>
+          <filter id="tgf"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <g class="reactor-ring"><circle cx="25" cy="25" r="21" fill="none" stroke="rgba(77,184,255,0.35)" stroke-width="1" stroke-dasharray="8,5"/></g>
+        <g class="reactor-ring2"><circle cx="25" cy="25" r="15" fill="none" stroke="rgba(201,168,76,0.4)" stroke-width="1" stroke-dasharray="3,5"/></g>
+        <circle cx="25" cy="25" r="10" fill="rgba(4,10,20,0.9)" stroke="rgba(77,184,255,0.3)" stroke-width="1"/>
+        <g class="reactor-core" filter="url(#tgf)">
+          <circle cx="25" cy="25" r="8" fill="url(#tcg)" opacity="0.9"/>
+          <circle cx="25" cy="25" r="3.5" fill="#a0e4ff"/>
+          <circle cx="25" cy="25" r="1.5" fill="white"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="top-right">
+      <div class="mic-status" id="micDot"></div>
+      <div class="top-time" id="topTime">--:--</div>
+      <div class="top-badge" id="topBadge">GEMINI</div>
+    </div>
+  </div>
+
+  <!-- APP BODY -->
+  <div class="app-body">
+    <div class="reactor-wrap">
+      <div class="chat-feed" id="chatFeed"></div>
+      <div class="big-reactor">
+        <svg id="bigReactor" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg" width="260" height="260">
+          <defs>
+            <radialGradient id="bcg" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" style="stop-color:#c0ecff"/>
+              <stop offset="55%" style="stop-color:#4db8ff"/>
+              <stop offset="100%" style="stop-color:#0d2a40;stop-opacity:0"/>
+            </radialGradient>
+            <filter id="bgf"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <circle cx="130" cy="130" r="124" fill="none" stroke="rgba(77,184,255,0.05)" stroke-width="1"/>
+          <g class="big-ring3"><circle cx="130" cy="130" r="112" fill="none" stroke="rgba(201,168,76,0.1)" stroke-width="1" stroke-dasharray="6,14"/></g>
+          <g class="big-ring1">
+            <circle cx="130" cy="130" r="94" fill="none" stroke="rgba(77,184,255,0.25)" stroke-width="1.5" stroke-dasharray="16,10"/>
+            <circle cx="130" cy="38"  r="3" fill="rgba(77,184,255,0.7)"/>
+            <circle cx="130" cy="222" r="3" fill="rgba(77,184,255,0.7)"/>
+            <circle cx="38"  cy="130" r="3" fill="rgba(77,184,255,0.7)"/>
+            <circle cx="222" cy="130" r="3" fill="rgba(77,184,255,0.7)"/>
+          </g>
+          <g class="big-ring2">
+            <circle cx="130" cy="130" r="74" fill="none" stroke="rgba(201,168,76,0.35)" stroke-width="1.5" stroke-dasharray="5,8"/>
+            <circle cx="130" cy="58"  r="3.5" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="130" cy="202" r="3.5" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="58"  cy="130" r="3.5" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="202" cy="130" r="3.5" fill="rgba(201,168,76,0.85)"/>
+          </g>
+          <circle cx="130" cy="130" r="54" fill="rgba(4,10,20,0.92)" stroke="rgba(77,184,255,0.3)" stroke-width="1.5"/>
+          <g stroke="rgba(77,184,255,0.22)" stroke-width="1" fill="none">
+            <polygon points="130,82 166,103 166,157 130,178 94,157 94,103"/>
+            <line x1="130" y1="82"  x2="130" y2="130"/><line x1="166" y1="103" x2="130" y2="130"/>
+            <line x1="166" y1="157" x2="130" y2="130"/><line x1="130" y1="178" x2="130" y2="130"/>
+            <line x1="94"  y1="157" x2="130" y2="130"/><line x1="94"  y1="103" x2="130" y2="130"/>
+          </g>
+          <g class="big-core" filter="url(#bgf)">
+            <circle cx="130" cy="130" r="36" fill="url(#bcg)" opacity="0.92"/>
+            <circle cx="130" cy="130" r="16" fill="#a0e4ff" opacity="0.96"/>
+            <circle cx="130" cy="130" r="7"  fill="white"/>
+          </g>
+        </svg>
+      </div>
+      <div class="status-wrap">
+        <div class="status-txt" id="statusTxt">AWAITING COMMAND</div>
+        <div class="waveform" id="waveform"></div>
+      </div>
+    </div>
+
+    <div class="quick-btns">
+      <button class="qbtn" onclick="cmd('what time is it')">TIME</button>
+      <button class="qbtn" onclick="cmd('current weather')">WEATHER</button>
+      <button class="qbtn" onclick="cmd('latest news headlines')">NEWS</button>
+      <button class="qbtn" onclick="cmd('tell me a joke')">JOKE</button>
+      <button class="qbtn" onclick="cmd('what can you do')">HELP</button>
+    </div>
+    <div class="bottom-bar">
+      <button class="mic-btn" id="micBtn">&#127908;</button>
+      <input class="txt-input" id="txtInput" placeholder="Enter command directive..."/>
+      <button class="send-btn" id="sendBtn" onclick="sendText()">SEND</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SYSTEM_GEMINI = `You are JARVIS (Just A Rather Very Intelligent System) from Iron Man. Calm, precise British tone, dry wit. Address user as "sir". Max 3 sentences unless detail requested. No markdown.`;
+const SYSTEM_CLAUDE = `You are JARVIS (Just A Rather Very Intelligent System) from Iron Man. Calm, precise British tone, dry wit. Address user as "sir". Keep responses concise—3 sentences max unless detail requested. No markdown.`;
+
+let activeModel = 'gemini', geminiKey = '', claudeKey = '', history = [], speaking = false, thinking = false, recog = null, alwaysOn = false, queryCount = 0, sessionStart = Date.now(), sidebarOpen = false, currentTheme = 'iron-man';
+
+// ── BOOT ─────────────────────────────────────
+window.onload = () => {
+  buildWaveform();
+  startClock();
+  const gk = localStorage.getItem('jg_gemini_key');
+  const ck = localStorage.getItem('jg_claude_key');
+  const theme = localStorage.getItem('jg_theme') || 'iron-man';
+  
+  if (gk) geminiKey = gk;
+  if (ck) claudeKey = ck;
+  
+  switchTheme(theme);
+  
+  if (gk || ck) {
+    activeModel = gk ? 'gemini' : 'claude';
+    showApp();
+  }
+};
+
+// ── THEME SWITCHING ──────────────────────────
+function switchTheme(theme) {
+  currentTheme = theme;
+  if (theme === 'doomsday') {
+    document.body.classList.add('theme-doomsday');
+  } else {
+    document.body.classList.remove('theme-doomsday');
+  }
+  localStorage.setItem('jg_theme', theme);
+  updateThemeUI();
+  addChat('sys', `AESTHETIC: ${theme === 'doomsday' ? 'ENDGAME' : 'IRON MAN'}`);
+}
+
+function updateThemeUI() {
+  const themeButtons = document.querySelectorAll('.theme-btn');
+  themeButtons.forEach(btn => {
+    btn.classList.toggle('active', 
+      (currentTheme === 'iron-man' && btn.textContent === 'IRON MAN') ||
+      (currentTheme === 'doomsday' && btn.textContent === 'ENDGAME')
+    );
+  });
+}
+
+// ── AUTH ──────────────────────────────────────
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(tab + '-tab').classList.add('active');
+  document.querySelector(`.auth-tab[onclick="switchAuthTab('${tab}')"]`).classList.add('active');
+}
+
+async function authorizeGemini() {
+  const k = document.getElementById('geminiInput').value.trim();
+  if (!k) return;
+  const btn = document.getElementById('geminiBtn');
+  btn.disabled = true;
+  btn.textContent = 'VERIFYING...';
+  document.getElementById('geminiError').textContent = '';
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${k}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'hi' }] }], generationConfig: { maxOutputTokens: 5 } })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message);
+    geminiKey = k;
+    activeModel = 'gemini';
+    localStorage.setItem('jg_gemini_key', k);
+    showApp();
+  } catch (e) {
+    document.getElementById('geminiError').textContent = 'Invalid API key: ' + e.message.substring(0, 40);
+    btn.disabled = false;
+    btn.textContent = 'INITIALIZE GEMINI CORE';
+  }
+}
+
+async function authorizeClaude() {
+  const k = document.getElementById('claudeInput').value.trim();
+  if (!k) return;
+  const btn = document.getElementById('claudeBtn');
+  btn.disabled = true;
+  btn.textContent = 'VERIFYING...';
+  document.getElementById('claudeError').textContent = '';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': k,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 5,
+        messages: [{ role: 'user', content: 'hi' }]
+      })
+    });
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message);
+    claudeKey = k;
+    activeModel = 'claude';
+    localStorage.setItem('jg_claude_key', k);
+    showApp();
+  } catch (e) {
+    document.getElementById('claudeError').textContent = 'Invalid API key: ' + e.message.substring(0, 40);
+    btn.disabled = false;
+    btn.textContent = 'INITIALIZE CLAUDE CORE';
+  }
+}
+
+function showApp() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('mainApp').classList.add('visible');
+  updateModelUI();
+  startListening();
+  startSession();
+  setTimeout(() => speak(`${activeModel === 'gemini' ? 'Gemini' : 'Claude'} core online. Good to see you, sir. How may I assist you today?`), 700);
+}
+
+function showApiConfig() {
+  const modal = `
+    <div style="position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center">
+      <div style="background:var(--panel);padding:24px;border:2px solid var(--border-light);width:420px;box-shadow:0 0 40px rgba(0,0,0,0.6)">
+        <div style="font-family:'Orbitron';font-size:0.75rem;letter-spacing:2px;color:var(--theme-primary);margin-bottom:18px;text-transform:uppercase">MANAGE API KEYS</div>
+        <div style="margin-bottom:18px">
+          <div style="font-size:0.62rem;color:var(--theme-primary-light);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">GEMINI KEY:</div>
+          <input id="configGemini" type="password" value="${geminiKey}" style="width:100%;padding:10px;background:var(--panel-dark);border:1px solid var(--border);color:var(--theme-primary);font-family:monospace;font-size:0.65rem"/>
+        </div>
+        <div style="margin-bottom:18px">
+          <div style="font-size:0.62rem;color:var(--theme-alt-light);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">CLAUDE KEY:</div>
+          <input id="configClaude" type="password" value="${claudeKey}" style="width:100%;padding:10px;background:var(--panel-dark);border:1px solid var(--border);color:var(--theme-alt-light);font-family:monospace;font-size:0.65rem"/>
+        </div>
+        <div style="display:flex;gap:12px">
+          <button onclick="saveApiConfig()" style="flex:1;padding:12px;background:rgba(77,184,255,0.2);border:1px solid var(--mode-color);color:var(--mode-color);cursor:pointer;font-family:'Orbitron';font-size:0.6rem;letter-spacing:1px;text-transform:uppercase">SAVE</button>
+          <button onclick="this.parentElement.parentElement.parentElement.remove()" style="flex:1;padding:12px;background:rgba(255,61,61,0.15);border:1px solid #ff3d3d;color:#ff8888;cursor:pointer;font-family:'Orbitron';font-size:0.6rem;letter-spacing:1px;text-transform:uppercase">CANCEL</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function saveApiConfig() {
+  const gk = document.getElementById('configGemini').value.trim();
+  const ck = document.getElementById('configClaude').value.trim();
+  if (gk) { geminiKey = gk; localStorage.setItem('jg_gemini_key', gk); }
+  if (ck) { claudeKey = ck; localStorage.setItem('jg_claude_key', ck); }
+  document.querySelector('[style*="z-index:1000"]').remove();
+  addChat('sys', 'API KEYS UPDATED');
+}
+
+function clearHistory() {
+  history = [];
+  document.getElementById('chatFeed').innerHTML = '';
+  addChat('sys', 'HISTORY CLEARED');
+  toggleSidebar();
+}
+
+// ── MODEL SWITCHING ──────────────────────────────────────
+function switchModel(model) {
+  if (model === 'gemini' && !geminiKey) { addChat('sys', 'GEMINI KEY NOT CONFIGURED'); return; }
+  if (model === 'claude' && !claudeKey) { addChat('sys', 'CLAUDE KEY NOT CONFIGURED'); return; }
+  
+  activeModel = model;
+  updateModelUI();
+  addChat('sys', `SWITCHED TO ${model.toUpperCase()} CORE`);
+}
+
+function updateModelUI() {
+  document.getElementById('geminiToggle').classList.toggle('active', activeModel === 'gemini');
+  document.getElementById('claudeToggle').classList.toggle('active', activeModel === 'claude');
+  document.getElementById('claudeToggle').classList.toggle('claude', activeModel === 'claude');
+  
+  document.getElementById('topBadge').textContent = activeModel.toUpperCase();
+  document.getElementById('topBadge').classList.toggle('claude', activeModel === 'claude');
+  
+  document.getElementById('sendBtn').classList.toggle('claude', activeModel === 'claude');
+  document.getElementById('micBtn').classList.toggle('claude', activeModel === 'claude');
+  
+  const modelName = activeModel === 'gemini' ? 'GEMINI 3.5 FLASH' : 'CLAUDE SONNET 4.6';
+  document.getElementById('sb-primary').textContent = modelName;
+  document.getElementById('sb-primary').classList.toggle('claude', activeModel === 'claude');
+}
+document.getElementById('sb-secondary').textContent = activeModel === 'gemini' ? (claudeKey ? 'CLAUDE SONNET 4.6' : 'OFFLINE') : (geminiKey ? 'GEMINI 3.5 FLASH' : 'OFFLINE');
+document.getElementById('sb-secondary').classList.toggle('claude', activeModel !== 'gemini' && !!claudeKey);
+
+// ── API CALLS ────────────────────────────────────────────
+async function callGemini(userMsg) {
+  const msgs = [
+    { role: 'user', parts: [{ text: SYSTEM_GEMINI + '\n\nAcknowledge with: Understood, sir.' }] },
+    { role: 'model', parts: [{ text: 'Understood, sir.' }] },
+    ...history.slice(-12).map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }]
+    })),
+    { role: 'user', parts: [{ text: userMsg }] }
+  ];
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: msgs, generationConfig: { maxOutputTokens: 300, temperature: 0.85 } })
+  });
+  const d = await res.json();
+  if (d.error) throw new Error(d.error.message);
+  return d?.candidates?.[0]?.content?.parts?.[0]?.text || "I'm afraid I could not process that, sir.";
+}
+
+async function callClaude(userMsg) {
+  const msgs = history.slice(-12).map(m => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    content: m.content
+  }));
+  msgs.push({ role: 'user', content: userMsg });
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': claudeKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
+      system: SYSTEM_CLAUDE,
+      messages: msgs
+    })
+  });
+  const d = await res.json();
+  if (d.error) throw new Error(d.error.message);
+  return d?.content?.[0]?.text || "I'm afraid I could not process that, sir.";
+}
+
+// ── PROCESS ───────────────────────────────────
+async function cmd(c) { addChat('user', c); await process(c); }
+async function sendText() {
+  const inp = document.getElementById('txtInput'), t = inp.value.trim();
+  if (!t) return;
+  inp.value = '';
+  addChat('user', t);
+  await process(t);
+}
+
+async function process(c) {
+  if (thinking || speaking) return;
+  
+  // Battle mode commands
+  if (/battle\s*mode\s*on/i.test(c)) { switchModel('claude'); return; }
+  if (/battle\s*mode\s*off/i.test(c)) { switchModel('gemini'); return; }
+  
+  // Endgame mode commands (simplified)
+  if (/endgame\s*on/i.test(c)) { switchTheme('doomsday'); return; }
+  if (/endgame\s*off/i.test(c)) { switchTheme('iron-man'); return; }
+  
+  thinking = true;
+  queryCount++;
+  document.getElementById('sb-queries').textContent = queryCount;
+  setStatus('PROCESSING...', 'thinking');
+  arcState('thinking');
+
+  if (/\btime\b/i.test(c) && !/weather/i.test(c)) {
+    const t = new Date(), h = t.getHours() % 12 || 12, m = t.getMinutes().toString().padStart(2, '0'), ap = t.getHours() >= 12 ? 'PM' : 'AM';
+    done(`The time is ${h}:${m} ${ap}, sir.`, c);
+    return;
+  }
+
+  try {
+    let reply;
+    if (activeModel === 'gemini') {
+      reply = await callGemini(c);
+    } else {
+      reply = await callClaude(c);
+    }
+    done(reply.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,6}\s/g, '').trim(), c);
+  } catch (e) {
+    if (e.message.includes('429') || e.message.toLowerCase().includes('quota') || e.message.toLowerCase().includes('rate')) {
+      done(`${activeModel === 'gemini' ? 'Gemini' : 'Claude'} rate limit reached, sir. Please wait a moment.`, c);
+    } else if (e.message.includes('401') || e.message.includes('403') || e.message.toLowerCase().includes('api key')) {
+      done("Authorization issue detected, sir. Check your API key.", c);
+    } else {
+      done(`Error: ${e.message.substring(0, 40)}`, c);
+    }
+  }
+}
+
+function done(reply, c) {
+  history.push({ role: 'user', content: c });
+  history.push({ role: 'assistant', content: reply });
+  if (history.length > 19) history = history.slice(-16);
+  thinking = false;
+  addChat(activeModel === 'gemini' ? 'jarvis' : 'claude', reply);
+  speak(reply);
+}
+
+// ── TTS ───────────────────────────────────────
+function speak(text) {
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text.replace(/[^\w\s.,!?'"-]/g, ''));
+  utt.rate = 0.92;
+  utt.pitch = 0.8;
+  utt.volume = 1;
+  const voices = window.speechSynthesis.getVoices();
+  const pick = voices.find(v => v.name.includes('Daniel')) || voices.find(v => v.name.includes('Google UK English Male')) || voices.find(v => v.lang === 'en-GB') || voices.find(v => v.lang.startsWith('en')) || voices[0];
+  if (pick) utt.voice = pick;
+  utt.onstart = () => { speaking = true; arcState('speaking'); setStatus('SPEAKING...', 'speaking'); waveAnim(true, 'gold'); };
+  utt.onend = () => { speaking = false; arcState('idle'); setStatus('READY — SAY HEY JARVIS', 'listening'); waveAnim(true, activeModel === 'claude' ? 'claude' : 'arc'); resumeListen(); };
+  utt.onerror = () => { speaking = false; resumeListen(); };
+  window.speechSynthesis.speak(utt);
+}
+
+// ── SPEECH INPUT ──────────────────────────────
+function startListening() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { addChat('sys', 'USE CHROME FOR VOICE'); return; }
+  recog = new SR();
+  recog.continuous = true;
+  recog.interimResults = true;
+  recog.lang = 'en-US';
+  alwaysOn = true;
+  recog.onstart = () => { document.getElementById('micDot').style.background = '#3dff8f'; document.getElementById('micBtn').classList.add('on'); waveAnim(true); setStatus('READY — SAY HEY JARVIS', 'listening'); };
+  recog.onend = () => { document.getElementById('micDot').style.background = '#ff3d3d'; document.getElementById('micBtn').classList.remove('on'); if (alwaysOn && !speaking) setTimeout(resumeListen, 350); };
+  recog.onerror = (e) => { if (e.error !== 'not-allowed' && alwaysOn) setTimeout(resumeListen, 1200); };
+  recog.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      e.results[i].isFinal ? (final += t) : (interim += t);
+    }
+    const all = (interim + final).toLowerCase().trim();
+    if ((all.includes('hey jarvis') || /\bjarvis\b/.test(all)) && final && !thinking && !speaking) {
+      const c = final.toLowerCase().replace(/hey jarvis[,.]?\s*/i, '').replace(/\bjarvis[,.]?\s*/i, '').trim();
+      cmd(c.length > 2 ? c : 'respond with just: Yes sir?');
+    }
+  };
+  try { recog.start(); } catch (e) { }
+}
+
+function resumeListen() { if (!alwaysOn || speaking) return; try { recog?.start(); } catch (e) { } }
+
+// ── UI ────────────────────────────────────────
+function addChat(role, text) {
+  const feed = document.getElementById('chatFeed');
+  const l = document.createElement('div');
+  l.className = `chat-line ${role}`;
+  l.textContent = text.length > 120 ? text.substring(0, 120) + '...' : text;
+  feed.appendChild(l);
+  while (feed.children.length > 6) feed.removeChild(feed.firstChild);
+}
+
+function setStatus(t, c) { 
+  const el = document.getElementById('statusTxt'); 
+  el.textContent = t; 
+  el.className = `status-txt ${c} ${activeModel === 'claude' ? 'claude' : ''}`; 
+}
+
+function arcState(s) {
+  const states = ['idle', 'listening', 'speaking', 'thinking'];
+  const cls = (activeModel === 'claude' ? 'claude-' : '') + (states.includes(s) ? s : 'idle');
+  document.getElementById('bigReactor').className = cls;
+  document.getElementById('topReactor').className = cls;
+}
+
+function toggleSidebar() { 
+  sidebarOpen = !sidebarOpen; 
+  document.getElementById('sidebar').classList.toggle('open', sidebarOpen); 
+}
+
+function buildWaveform() { 
+  const wf = document.getElementById('waveform'); 
+  for (let i = 0; i < 22; i++) { 
+    const b = document.createElement('div'); 
+    b.className = 'wbar'; 
+    b.style.setProperty('--h', `${5 + Math.random() * 12}px`);
+    b.style.setProperty('--d', `${0.4 + Math.random() * 0.6}s`);
+    wf.appendChild(b); 
+  } 
+}
+
+function waveAnim(on, color = 'arc') { 
+  document.querySelectorAll('.wbar').forEach(b => { 
+    b.style.background = color === 'gold' ? '#f0c040' : color === 'claude' ? '#c77dff' : '#4db8ff'; 
+    on ? b.classList.add('on') : b.classList.remove('on'); 
+  }); 
+}
+
+function startClock() { 
+  setInterval(() => { 
+    const t = new Date(); 
+    document.getElementById('topTime').textContent = t.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: true }); 
+  }, 1000); 
+}
+
+function startSession() { 
+  setInterval(() => { 
+    const s = Math.floor((Date.now() - sessionStart) / 1000); 
+    document.getElementById('sb-session').textContent = `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`; 
+  }, 1000); 
+}
+
+document.getElementById('txtInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendText(); });
+document.getElementById('geminiInput').addEventListener('keydown', e => { if (e.key === 'Enter') authorizeGemini(); });
+document.getElementById('claudeInput').addEventListener('keydown', e => { if (e.key === 'Enter') authorizeClaude(); });
+
+document.getElementById('micBtn').addEventListener('click', () => {
+  if (!recog) return;
+  alwaysOn = !alwaysOn;
+  if (!alwaysOn) { 
+    try { recog.stop(); } catch (e) { } 
+    setStatus('MIC OFF', ''); 
+    waveAnim(false); 
+  } else {
+    resumeListen();
+  }
+});
+function retryKey() {
+  const k = document.getElementById('invInput').value.trim();
+  if (!k) return;
+  geminiKey = k;
+  localStorage.setItem('jg_gemini_key', k);
+  document.getElementById('invalidOverlay').classList.remove('show');
+}
+
+if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+</script>
+</body>
+</html>
